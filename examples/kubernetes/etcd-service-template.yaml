@@ -15,6 +15,7 @@ spec:
     component: etcd
     cell: {{cell}}
     app: vitess
+  type: {{service_type}}
 ---
 # Headless service for etcd cluster bootstrap.
 kind: Service

@@ -14,6 +14,7 @@ script_root=`dirname "${BASH_SOURCE}"`
 source $script_root/env.sh
 
 replicas=${ETCD_REPLICAS:-3}
+service_type=${ETCD_SERVICE_TYPE:'ClusterIP'}
 VITESS_NAME=${VITESS_NAME:-'default'}
 CELLS=${CELLS:-'test'}
 cells=`echo $CELLS | tr ',' ' '`
@@ -23,6 +24,7 @@ for cell in 'global' $cells; do
   echo "Creating etcd service for $cell cell..."
   cat etcd-service-template.yaml | \
     sed -e "s/{{cell}}/$cell/g" | \
+    sed -e "s/{{service_type}}/$service_type/g" | \
     $KUBECTL create --namespace=$VITESS_NAME -f -
 
   # Expand template variables
