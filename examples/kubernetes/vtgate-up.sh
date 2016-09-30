@@ -12,6 +12,7 @@ VTDATAROOT_VOLUME=${VTDATAROOT_VOLUME:-''}
 VTGATE_TEMPLATE=${VTGATE_TEMPLATE:-'vtgate-controller-template.yaml'}
 CELLS=${CELLS:-'test'}
 VITESS_NAME=${VITESS_NAME:-'default'}
+image=${IMAGE:-'vitess/lite'}
 
 vtdataroot_volume='emptyDir: {}'
 if [ -n "$VTDATAROOT_VOLUME" ]; then
@@ -31,7 +32,7 @@ for cell in $cells; do
   cat vtgate-service-template.yaml | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
 
   sed_script=""
-  for var in replicas vtdataroot_volume cell; do
+  for var in replicas vtdataroot_volume cell image; do
     sed_script+="s,{{$var}},${!var},g;"
   done
 
