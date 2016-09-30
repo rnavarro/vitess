@@ -11,7 +11,7 @@ metadata:
 spec:
   containers:
     - name: vttablet
-      image: vitess/lite
+      image: {{image}}
       livenessProbe:
         httpGet:
           path: /debug/vars
@@ -63,16 +63,16 @@ spec:
           -health_check_interval 5s
           -mysqlctl_socket $VTDATAROOT/mysqlctl.sock
           -db-config-app-uname vt_app
-          -db-config-app-dbname vt_{{keyspace}}
+          -db-config-app-dbname {{db_name}}
           -db-config-app-charset utf8
           -db-config-dba-uname vt_dba
-          -db-config-dba-dbname vt_{{keyspace}}
+          -db-config-dba-dbname {{db_name}}
           -db-config-dba-charset utf8
           -db-config-repl-uname vt_repl
-          -db-config-repl-dbname vt_{{keyspace}}
+          -db-config-repl-dbname {{db_name}}
           -db-config-repl-charset utf8
           -db-config-filtered-uname vt_filtered
-          -db-config-filtered-dbname vt_{{keyspace}}
+          -db-config-filtered-dbname {{db_name}}
           -db-config-filtered-charset utf8
           -enable_semi_sync
           -enable_replication_reporter
@@ -80,7 +80,7 @@ spec:
           -orc_discover_interval 5m
           -restore_from_backup {{backup_flags}}" vitess
     - name: mysql
-      image: vitess/lite
+      image: {{image}}
       volumeMounts:
         - name: syslog
           mountPath: /dev/log
@@ -103,16 +103,16 @@ spec:
           -tablet_uid {{uid}}
           -socket_file $VTDATAROOT/mysqlctl.sock
           -db-config-app-uname vt_app
-          -db-config-app-dbname vt_{{keyspace}}
+          -db-config-app-dbname {{db_name}}
           -db-config-app-charset utf8
           -db-config-dba-uname vt_dba
-          -db-config-dba-dbname vt_{{keyspace}}
+          -db-config-dba-dbname {{db_name}}
           -db-config-dba-charset utf8
           -db-config-repl-uname vt_repl
-          -db-config-repl-dbname vt_{{keyspace}}
+          -db-config-repl-dbname {{db_name}}
           -db-config-repl-charset utf8
           -db-config-filtered-uname vt_filtered
-          -db-config-filtered-dbname vt_{{keyspace}}
+          -db-config-filtered-dbname {{db_name}}
           -db-config-filtered-charset utf8
           -init_db_sql_file $VTROOT/config/init_db.sql" vitess
       env:
