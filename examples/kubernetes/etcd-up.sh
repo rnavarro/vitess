@@ -16,13 +16,15 @@ source $script_root/env.sh
 replicas=${ETCD_REPLICAS:-3}
 service_type=${ETCD_SERVICE_TYPE:-'ClusterIP'}
 VITESS_NAME=${VITESS_NAME:-'default'}
+ETCD_SERVICE_TEMPLATE=${ETCD_SERVICE_TEMPLATE:-'etcd-service-template.yaml'}
+ETCD_CONTROLLER_TEMPLATE=${ETCD_CONTROLLER_TEMPLATE:-'etcd-controller-template.yaml'}
 CELLS=${CELLS:-'test'}
 cells=`echo $CELLS | tr ',' ' '`
 
 for cell in 'global' $cells; do
   # Create the client service, which will load-balance across all replicas.
   echo "Creating etcd service for $cell cell..."
-  cat etcd-service-template.yaml | \
+  cat $ETCD_SERVICE_TEMPLATE | \
     sed -e "s/{{cell}}/$cell/g" | \
     sed -e "s/{{service_type}}/$service_type/g" | \
     $KUBECTL create --namespace=$VITESS_NAME -f -
@@ -35,6 +37,6 @@ for cell in 'global' $cells; do
 
   # Create the replication controller.
   echo "Creating etcd replicationcontroller for $cell cell..."
-  cat etcd-controller-template.yaml | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
+  cat $ETCD_CONTROLLER_TEMPLATE | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
 done
 
