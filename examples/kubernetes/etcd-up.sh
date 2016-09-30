@@ -14,7 +14,7 @@ script_root=`dirname "${BASH_SOURCE}"`
 source $script_root/env.sh
 
 replicas=${ETCD_REPLICAS:-3}
-service_type=${ETCD_SERVICE_TYPE:'ClusterIP'}
+service_type=${ETCD_SERVICE_TYPE:-'ClusterIP'}
 VITESS_NAME=${VITESS_NAME:-'default'}
 CELLS=${CELLS:-'test'}
 cells=`echo $CELLS | tr ',' ' '`
