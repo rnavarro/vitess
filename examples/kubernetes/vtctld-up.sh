@@ -12,6 +12,8 @@ image=${IMAGE:-'vitess/lite'}
 CELLS=${CELLS:-'test'}
 VITESS_NAME=${VITESS_NAME:-'default'}
 TEST_MODE=${TEST_MODE:-'0'}
+VTCTLD_CONTROLLER_TEMPLATE=${VTCTLD_CONTROLLER_TEMPLATE:-'vtctld-controller-template.yaml'}
+VTCTLD_SERVICE_TEMPLATE=${VTCTLD_SERVICE_TEMPLATE:-'vtctld-service-template.yaml'}
 
 test_flags=`[[ $TEST_MODE -gt 0 ]] && echo '-enable_queries' || echo ''`
 
@@ -23,7 +25,7 @@ for cell in $cells; do
   for var in service_type; do
     sed_script+="s,{{$var}},${!var},g;"
   done
-  cat vtctld-service-template.yaml | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
+  cat $VTCTLD_SERVICE_TEMPLATE | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
 
   echo "Creating vtctld replicationcontroller..."
   # Expand template variables
@@ -33,7 +35,7 @@ for cell in $cells; do
   done
 
   # Instantiate template and send to kubectl.
-  cat vtctld-controller-template.yaml | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
+  cat $VTCTLD_CONTROLLER_TEMPLATE | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
 
   echo
   echo "To access vtctld web UI, start kubectl proxy in another terminal:"
