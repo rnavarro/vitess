@@ -9,7 +9,8 @@ source $script_root/env.sh
 
 VTGATE_REPLICAS=${VTGATE_REPLICAS:-3}
 VTDATAROOT_VOLUME=${VTDATAROOT_VOLUME:-''}
-VTGATE_TEMPLATE=${VTGATE_TEMPLATE:-'vtgate-controller-template.yaml'}
+VTGATE_CONTROLLER_TEMPLATE=${VTGATE_CONTROLLER_TEMPLATE:-'vtgate-controller-template.yaml'}
+VTGATE_SERVICE_TEMPLATE=${VTGATE_SERVICE_TEMPLATE:-'vtgate-service-template.yaml'}
 CELLS=${CELLS:-'test'}
 VITESS_NAME=${VITESS_NAME:-'default'}
 image=${IMAGE:-'vitess/lite'}
@@ -29,7 +30,7 @@ for cell in $cells; do
   done
 
   echo "Creating vtgate service in cell $cell..."
-  cat vtgate-service-template.yaml | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
+  cat $VTGATE_SERVICE_TEMPLATE | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
 
   sed_script=""
   for var in replicas vtdataroot_volume cell image; do
@@ -37,5 +38,5 @@ for cell in $cells; do
   done
 
   echo "Creating vtgate replicationcontroller in cell $cell..."
-  cat $VTGATE_TEMPLATE | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
+  cat $VTGATE_CONTROLLER_TEMPLATE | sed -e "$sed_script" | $KUBECTL create --namespace=$VITESS_NAME -f -
 done
