@@ -68,32 +68,13 @@ func (*NumericStaticMapHash) Cost() int {
 	return 1
 }
 
-// Verify returns true if ids and ksids match.
-func (vind *NumericStaticMapHash) Verify(_ VCursor, ids []sqltypes.Value, ksids [][]byte) ([]bool, error) {
-	out := make([]bool, len(ids))
-	for i := range ids {
-		var keybytes [8]byte
-		num, err := sqltypes.ToUint64(ids[i])
-		if err != nil {
-			return nil, fmt.Errorf("NumericStaticMapHash.Verify: %v", err)
-		}
-		lookupNum, ok := vind.lookup[num]
-		if ok {
-			num = lookupNum
-		}
-		binary.BigEndian.PutUint64(keybytes[:], num)
-		out[i] = (bytes.Compare(keybytes[:], ksids[i]) == 0)
-	}
-	return out, nil
-}
-
 // Map returns the associated keyspace ids for the given ids.
 func (vind *NumericStaticMapHash) Map(_ VCursor, ids []sqltypes.Value) ([][]byte, error) {
 	out := make([][]byte, 0, len(ids))
 	for _, id := range ids {
 		num, err := sqltypes.ToUint64(id)
 		if err != nil {
-			return nil, fmt.Errorf("NumericStaticMapHash.Map: %v", err)
+			return nil, fmt.Errorf("NumericStaticMapHash.Map(): %v", err)
 		}
 		lookupNum, found := vind.lookup[num]
 		if found {
@@ -108,4 +89,39 @@ func (vind *NumericStaticMapHash) Map(_ VCursor, ids []sqltypes.Value) ([][]byte
 
 	}
 	return out, nil
+}
+
+// Verify returns true if ids and ksids match.
+func (vind *NumericStaticMapHash) Verify(_ VCursor, ids []sqltypes.Value, ksids [][]byte) ([]bool, error) {
+	out := make([]bool, len(ids))
+	for i := range ids {
+		var keybytes [8]byte
+		num, err := sqltypes.ToUint64(ids[i])
+		if err != nil {
+			return nil, fmt.Errorf("NumericStaticMapHash.Verify(): %v", err)
+		}
+		lookupNum, ok := vind.lookup[num]
+		if ok {
+			num = lookupNum
+
+			binary.BigEndian.PutUint64(keybytes[:], num)
+			out[i] = (bytes.Compare(keybytes[:], ksids[i]) == 0)
+		} else {
+			out[i] = (bytes.Compare(vhash(num), ksids[i]) == 0)
+		}
+	}
+	return out, nil
+}
+
+// ReverseMap returns the ids from ksids.
+func (vind *NumericStaticMapHash) ReverseMap(_ VCursor, ksids [][]byte) ([]sqltypes.Value, error) {
+	reverseIds := make([]sqltypes.Value, 0, len(ksids))
+	for _, keyspaceID := range ksids {
+		val, err := vunhash(keyspaceID)
+		if err != nil {
+			return reverseIds, err
+		}
+		reverseIds = append(reverseIds, sqltypes.NewUint64(val))
+	}
+	return reverseIds, nil
 }
