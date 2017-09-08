@@ -34,7 +34,7 @@ import (
 // be called from init().
 func createNumericStaticMapHashVindex() (Vindex, error) {
 	m := make(map[string]string)
-	m["json_path"] = testfiles.Locate("vtgate/numeric_static_map_hash_test.json")
+	m["json_path"] = testfiles.Locate("vtgate/numeric_static_map_test.json")
 	return CreateVindex("numeric_static_map_hash", "NumericStaticMapHash", m)
 }
 
@@ -44,7 +44,7 @@ func TestNumericStaticMapHashCost(t *testing.T) {
 		t.Fatalf("failed to create vindex: %v", err)
 	}
 	if NumericStaticMapHash.Cost() != 1 {
-		t.Errorf("Cost(): %d, want 1", NumericStaticMapHash.Cost())
+		t.Errorf("NumericStaticMapHash.Cost(): %d, want 1", NumericStaticMapHash.Cost())
 	}
 }
 
@@ -54,7 +54,7 @@ func TestNumericStaticMapHashString(t *testing.T) {
 		t.Fatalf("failed to create vindex: %v", err)
 	}
 	if strings.Compare("NumericStaticMapHash", NumericStaticMapHash.String()) != 0 {
-		t.Errorf("String(): %s, want num", NumericStaticMapHash.String())
+		t.Errorf("NumericStaticMapHash.String(): %s, want num", NumericStaticMapHash.String())
 	}
 }
 
@@ -70,8 +70,6 @@ func TestNumericStaticMapHashMap(t *testing.T) {
 		sqltypes.NewInt64(4),
 		sqltypes.NewInt64(5),
 		sqltypes.NewInt64(6),
-		sqltypes.NewInt64(7),
-		sqltypes.NewInt64(8),
 	})
 	if err != nil {
 		t.Error(err)
@@ -81,16 +79,14 @@ func TestNumericStaticMapHashMap(t *testing.T) {
 	// has 3 mapped to 2
 	want := [][]byte{
 		[]byte("\x00\x00\x00\x00\x00\x00\x00\x01"),
+		[]byte("\x06\xe7\xea\"Βp\x8f"),
 		[]byte("\x00\x00\x00\x00\x00\x00\x00\x02"),
-		[]byte("\x00\x00\x00\x00\x00\x00\x00\x02"),
-		[]byte("\x00\x00\x00\x00\x00\x00\x00\x04"),
-		[]byte("\x00\x00\x00\x00\x00\x00\x00\x05"),
-		[]byte("\x00\x00\x00\x00\x00\x00\x00\x06"),
-		[]byte("\x00\x00\x00\x00\x00\x00\x00\x07"),
-		[]byte("\x00\x00\x00\x00\x00\x00\x00\x08"),
+		[]byte("\xd2\xfd\x88g\xd5\r-\xfe"),
+		[]byte("p\xbb\x02<\x81\f\xa8z"),
+		[]byte("\xf0\x98H\n\xc4ľq"),
 	}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("Map(): %+v, want %+v", got, want)
+		t.Errorf("NumericStaticMapHash.Map(): %+v, want %+v", got, want)
 	}
 }
 
@@ -100,9 +96,9 @@ func TestNumericStaticMapHashMapBadData(t *testing.T) {
 		t.Fatalf("failed to create vindex: %v", err)
 	}
 	_, err = NumericStaticMapHash.(Unique).Map(nil, []sqltypes.Value{sqltypes.NewFloat64(1.1)})
-	want := `NumericStaticMapHash.Map: could not parse value: 1.1`
+	want := `NumericStaticMapHash.Map(): could not parse value: 1.1`
 	if err == nil || err.Error() != want {
-		t.Errorf("NumericStaticMapHash.Map: %v, want %v", err, want)
+		t.Errorf("NumericStaticMapHash.Map(): %v, want %v", err, want)
 	}
 }
 
@@ -119,13 +115,32 @@ func TestNumericStaticMapHashVerify(t *testing.T) {
 	}
 	want := []bool{true, false}
 	if !reflect.DeepEqual(got, want) {
-		t.Errorf("lhu.Verify(match): %v, want %v", got, want)
+		t.Errorf("NumericStaticMapHash.Verify(match): %v, want %v", got, want)
 	}
 
 	// Failure test
 	_, err = NumericStaticMapHash.Verify(nil, []sqltypes.Value{sqltypes.NewVarBinary("aa")}, [][]byte{nil})
-	wantErr := "NumericStaticMapHash.Verify: could not parse value: aa"
+	wantErr := "NumericStaticMapHash.Verify(): could not parse value: aa"
 	if err == nil || err.Error() != wantErr {
-		t.Errorf("hash.Verify err: %v, want %s", err, wantErr)
+		t.Errorf("NumericStaticMapHash.Verify(): %v, want %s", err, wantErr)
+	}
+}
+
+func TestNumericStaticMapHashReverseMap(t *testing.T) {
+	got, err := hash.(Reversible).ReverseMap(nil, [][]byte{[]byte("\x16k@\xb4J\xbaK\xd6")})
+	if err != nil {
+		t.Error(err)
+	}
+	want := []sqltypes.Value{sqltypes.NewUint64(uint64(1))}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("NumericStaticMapHash.ReverseMap(): %v, want %v", got, want)
+	}
+}
+
+func TestNumericStaticMapHashReverseMapNeg(t *testing.T) {
+	_, err := hash.(Reversible).ReverseMap(nil, [][]byte{[]byte("\x16k@\xb4J\xbaK\xd6\x16k@\xb4J\xbaK\xd6")})
+	want := "invalid keyspace id: 166b40b44aba4bd6166b40b44aba4bd6"
+	if err.Error() != want {
+		t.Errorf("NumericStaticMapHash.ReverseMapNeg(): %v, want %v", err, want)
 	}
 }
