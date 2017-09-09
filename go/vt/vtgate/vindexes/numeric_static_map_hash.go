@@ -72,6 +72,7 @@ func (*NumericStaticMapHash) Cost() int {
 func (vind *NumericStaticMapHash) Map(_ VCursor, ids []sqltypes.Value) ([][]byte, error) {
 	out := make([][]byte, 0, len(ids))
 	for _, id := range ids {
+		var keybytes [8]byte
 		num, err := sqltypes.ToUint64(id)
 		if err != nil {
 			return nil, fmt.Errorf("NumericStaticMapHash.Map(): %v", err)
@@ -80,7 +81,6 @@ func (vind *NumericStaticMapHash) Map(_ VCursor, ids []sqltypes.Value) ([][]byte
 		if found {
 			num = lookupNum
 
-			var keybytes [8]byte
 			binary.BigEndian.PutUint64(keybytes[:], num)
 			out = append(out, keybytes[:])
 		} else {
@@ -100,8 +100,8 @@ func (vind *NumericStaticMapHash) Verify(_ VCursor, ids []sqltypes.Value, ksids 
 		if err != nil {
 			return nil, fmt.Errorf("NumericStaticMapHash.Verify(): %v", err)
 		}
-		lookupNum, ok := vind.lookup[num]
-		if ok {
+		lookupNum, found := vind.lookup[num]
+		if found {
 			num = lookupNum
 
 			binary.BigEndian.PutUint64(keybytes[:], num)
@@ -111,17 +111,4 @@ func (vind *NumericStaticMapHash) Verify(_ VCursor, ids []sqltypes.Value, ksids 
 		}
 	}
 	return out, nil
-}
-
-// ReverseMap returns the ids from ksids.
-func (vind *NumericStaticMapHash) ReverseMap(_ VCursor, ksids [][]byte) ([]sqltypes.Value, error) {
-	reverseIds := make([]sqltypes.Value, 0, len(ksids))
-	for _, keyspaceID := range ksids {
-		val, err := vunhash(keyspaceID)
-		if err != nil {
-			return reverseIds, err
-		}
-		reverseIds = append(reverseIds, sqltypes.NewUint64(val))
-	}
-	return reverseIds, nil
 }

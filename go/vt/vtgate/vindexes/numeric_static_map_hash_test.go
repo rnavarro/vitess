@@ -38,11 +38,22 @@ func createNumericStaticMapHashVindex() (Vindex, error) {
 	return CreateVindex("numeric_static_map_hash", "NumericStaticMapHash", m)
 }
 
+func TestNumericStaticMapHashJsonLoading(t *testing.T) {
+	m := make(map[string]string)
+	_, err := CreateVindex("numeric_static_map_hash", "NumericStaticMapHash", m)
+
+	want := "NumericStaticMapHash: Could not find `json_path` param in vschema"
+	if err == nil || err.Error() != want {
+		t.Errorf("NumericStaticMapHash.ParseJson: %v, want %v", err, want)
+	}
+}
+
 func TestNumericStaticMapHashCost(t *testing.T) {
 	NumericStaticMapHash, err := createNumericStaticMapHashVindex()
 	if err != nil {
 		t.Fatalf("failed to create vindex: %v", err)
 	}
+
 	if NumericStaticMapHash.Cost() != 1 {
 		t.Errorf("NumericStaticMapHash.Cost(): %d, want 1", NumericStaticMapHash.Cost())
 	}
@@ -53,6 +64,7 @@ func TestNumericStaticMapHashString(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create vindex: %v", err)
 	}
+
 	if strings.Compare("NumericStaticMapHash", NumericStaticMapHash.String()) != 0 {
 		t.Errorf("NumericStaticMapHash.String(): %s, want num", NumericStaticMapHash.String())
 	}
@@ -63,6 +75,7 @@ func TestNumericStaticMapHashMap(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create vindex: %v", err)
 	}
+
 	got, err := NumericStaticMapHash.(Unique).Map(nil, []sqltypes.Value{
 		sqltypes.NewInt64(1),
 		sqltypes.NewInt64(2),
@@ -95,7 +108,13 @@ func TestNumericStaticMapHashMapBadData(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create vindex: %v", err)
 	}
-	_, err = NumericStaticMapHash.(Unique).Map(nil, []sqltypes.Value{sqltypes.NewFloat64(1.1)})
+
+	_, err = NumericStaticMapHash.(Unique).Map(nil,
+		[]sqltypes.Value{
+			sqltypes.NewFloat64(1.1),
+		},
+	)
+
 	want := `NumericStaticMapHash.Map(): could not parse value: 1.1`
 	if err == nil || err.Error() != want {
 		t.Errorf("NumericStaticMapHash.Map(): %v, want %v", err, want)
@@ -107,40 +126,54 @@ func TestNumericStaticMapHashVerify(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create vindex: %v", err)
 	}
+
 	got, err := NumericStaticMapHash.Verify(nil,
-		[]sqltypes.Value{sqltypes.NewInt64(1), sqltypes.NewInt64(2)},
-		[][]byte{[]byte("\x00\x00\x00\x00\x00\x00\x00\x01"), []byte("\x00\x00\x00\x00\x00\x00\x00\x01")})
+		[]sqltypes.Value{
+			sqltypes.NewInt64(1),
+			sqltypes.NewInt64(2),
+			sqltypes.NewInt64(3),
+			sqltypes.NewInt64(4),
+			sqltypes.NewInt64(5),
+			sqltypes.NewInt64(6),
+		},
+		[][]byte{
+			[]byte("\x00\x00\x00\x00\x00\x00\x00\x01"),
+			[]byte("\x06\xe7\xea\"Βp\x8f"),
+			[]byte("\x00\x00\x00\x00\x00\x00\x00\x02"),
+			[]byte("\xd2\xfd\x88g\xd5\r-\xfe"),
+			[]byte("p\xbb\x02<\x81\f\xa8z"),
+			[]byte("\xf0\x98H\n\xc4ľq"),
+		},
+	)
+
 	if err != nil {
 		t.Error(err)
 	}
-	want := []bool{true, false}
+
+	want := []bool{
+		true,
+		true,
+		true,
+		true,
+		true,
+		true,
+	}
+
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("NumericStaticMapHash.Verify(match): %v, want %v", got, want)
 	}
 
 	// Failure test
-	_, err = NumericStaticMapHash.Verify(nil, []sqltypes.Value{sqltypes.NewVarBinary("aa")}, [][]byte{nil})
+	_, err = NumericStaticMapHash.Verify(nil,
+		[]sqltypes.Value{
+			sqltypes.NewVarBinary("aa"),
+		},
+		[][]byte{
+			nil,
+		},
+	)
 	wantErr := "NumericStaticMapHash.Verify(): could not parse value: aa"
 	if err == nil || err.Error() != wantErr {
 		t.Errorf("NumericStaticMapHash.Verify(): %v, want %s", err, wantErr)
-	}
-}
-
-func TestNumericStaticMapHashReverseMap(t *testing.T) {
-	got, err := hash.(Reversible).ReverseMap(nil, [][]byte{[]byte("\x16k@\xb4J\xbaK\xd6")})
-	if err != nil {
-		t.Error(err)
-	}
-	want := []sqltypes.Value{sqltypes.NewUint64(uint64(1))}
-	if !reflect.DeepEqual(got, want) {
-		t.Errorf("NumericStaticMapHash.ReverseMap(): %v, want %v", got, want)
-	}
-}
-
-func TestNumericStaticMapHashReverseMapNeg(t *testing.T) {
-	_, err := hash.(Reversible).ReverseMap(nil, [][]byte{[]byte("\x16k@\xb4J\xbaK\xd6\x16k@\xb4J\xbaK\xd6")})
-	want := "invalid keyspace id: 166b40b44aba4bd6166b40b44aba4bd6"
-	if err.Error() != want {
-		t.Errorf("NumericStaticMapHash.ReverseMapNeg(): %v, want %v", err, want)
 	}
 }
